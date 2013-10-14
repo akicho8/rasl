@@ -1,0 +1,22 @@
+        start
+        lea     gr1, 3
+        call    fnumb
+        ret
+fnumb   cpa     gr1, const3
+        jpz     next
+        lea     gr2, -1, gr1
+        ret
+next    push    0, gr1
+        lea     gr1, -1, gr1
+        call    fnumb
+        push    0, gr2
+        lea     gr1, -1, gr1
+        call    fnumb
+        st      gr2, wrk
+        pop     gr2
+        add     gr2, wrk
+        pop     gr1
+        ret
+const3  dc      3
+wrk     ds      1
+        end

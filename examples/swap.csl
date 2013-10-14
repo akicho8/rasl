@@ -1,0 +1,8 @@
+MAIN   START
+       LAD     GR1,1
+       LAD     GR2,2
+       PUSH    0,GR1
+       LD      GR1,GR2
+       POP     GR2
+       RET
+       END

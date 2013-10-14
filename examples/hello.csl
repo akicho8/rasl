@@ -1,0 +1,6 @@
+        START
+        OUT     STR,LEN
+        RET
+STR     DC      'Hello'
+LEN     DC      5
+        END

@@ -1,0 +1,138 @@
+#+OPTIONS: toc:nil num:nil author:nil creator:nil \n:nil |:t
+#+OPTIONS: @:t ::t ^:t -:t f:t *:t <:t
+
+* CASL Assembler / Simulator
+
+  - [[https://travis-ci.org/akicho8/rasl][Travis]]: [[https://travis-ci.org/akicho8/rasl.png]]
+  - [[https://gemnasium.com/akicho8/rasl/][Gemnasium]]: [[https://gemnasium.com/akicho8/rasl.png]]
+  - [[https://codeclimate.com/github/akicho8/rasl][Code Climate]]: [[https://codeclimate.com/github/akicho8/rasl.png]]
+
+ #+BEGIN_EXAMPLE
+ app = Rasl::Processor.new
+ app.assemble <<-SOURCE
+ MAIN    START
+         LD      GR0,=1
+         ADDA    GR0,=2
+         ADDA    GR0,=3
+         ST      GR0,RESULT
+         RET
+ RESULT  DS      1
+         END
+ SOURCE
+ app.go
+ app.memory[app.labels["MAIN"]["RESULT"]]     # => 6
+ puts app.disassemble
+ # >> 0000 1000 000A    LD      GR0, #000A
+ # >> 0002 2000 000B    ADDA    GR0, #000B
+ # >> 0004 2000 000C    ADDA    GR0, #000C
+ # >> 0006 1100 0009    ST      GR0, #0009
+ # >> 0008 8100         RET
+ # >> 0009 0006         DC      6
+ # >> 000A 0001         DC      1
+ # >> 000B 0002         DC      2
+ # >> 000C 0003         DC      3
+ #+END_EXAMPLE
+
+*** 仕様
+
+   - CASL1 と CASL2 にだいたい対応
+   - START〜END は複数書ける
+   - 最初に登場した START に第一引数があればそれを起動アドレスにする
+   - STARTに前置したラベルはグローバルラベル
+   - STARTのあとからENDまではローカルラベル
+   - START〜ENDを書かなかった場合のラベルはすべてグローバルラベル
+   - インライン即値はENDの直前に定義する。END がなければコードの最後に定義する
+   - START 命令のラベルは必須にしてない
+   - START 自体省略可
+   - END も省略可
+   - EXIT で終了してもいい
+   - GRn を n とは書けない (CASL2ではそれがアドレスなのかレジスタか判別しようがないため)
+   - ラベルの文字数制限なし
+   - ラベルの最後にコロンをつけてもいい
+   - ラベルの先頭に $ や @ をつけてもいい
+   - ラベルだけの行を書いてもいい
+   - いきなり先頭行から命令を書いてもいい (Rasl.config.bol_order = false で無効になる)
+   - ラベルの最後にコロンをつけると必ずラベルになる (nop: と書いたら nop はラベルとみなす)
+   - ラベルは大小文字を区別する
+   - NOP は #00 にはしてない (データを実行してエラーになる方がまし)
+   - セパレーターはカンマでもホワイトスペースでもいい
+   - GRn の他に FR PC SP レジスタを指定できる (例: addl SP, 1 など)
+   - 文字列はダブルクォーテーションで囲んでもいい
+   - 行頭からだけ # でコメントにできる。shebang 用
+   - Rasl.config.spec = 1 にすると GR4 は SP のエイリアスになる
+
+*** 注意点
+
+   - 文字コードは UTF-8 なので DC 'あ' は DS 3 の領域を使う
+   - 文字列リテラルの中だろうとセミコロン以降をぶっちぎる(DC 'a;b' などと書くと'で閉じてないことになる。その場合は 'a\;b' とするといい)
+
+*** コマンドラインで使う例
+
+ #+BEGIN_EXAMPLE
+ $ cat hello.csl
+         START
+         OUT     STR,LEN
+         RET
+ STR     DC      'Hello'
+ LEN     DC      11
+         END
+ #+END_EXAMPLE
+
+ #+BEGIN_EXAMPLE
+ $ rasl -p hello.csl
+ 0000 7001 0000    PUSH    #0000, GR1
+ 0002 7002 0000    PUSH    #0000, GR2
+ 0004 1210 000D    LAD     GR1, #000D
+ 0006 1220 0018    LAD     GR2, #0018
+ 0008 F000 0001    SVC     #0001
+ 000A 7120         POP     GR2
+ 000B 7110         POP     GR1
+ 000C 8100         RET
+ 000D 0048         DC      72     ; 'H'
+ 000E 0065         DC      101    ; 'e'
+ 000F 006C         DC      108    ; 'l'
+ 0010 006C         DC      108    ; 'l'
+ 0011 006F         DC      111    ; 'o'
+ 0012 000B         DC      5
+ #+END_EXAMPLE
+
+ #+BEGIN_EXAMPLE
+ $ rasl -g hello.csl
+ Hello
+ #+END_EXAMPLE
+
+*** Simulator
+
+ #+BEGIN_EXAMPLE
+ $ rasl -s hello.csl
+ -?
+ D[address]    memory-dump
+ U[address]    unassemble
+ G[address]    go
+ T[address]    trace
+ R[reg=n]      register
+ ? or H        usage
+ I             init
+ Q             quit
+ -r
+ GR0=0000 GR1=0000 GR2=0000 GR3=0000 GR4=0000 GR5=0000 GR6=0000 GR7=0000 PC=0000 SP=FFFF FR=___(+)
+ 0000 7001 0000    PUSH    #0000, GR1
+ -u
+ 0000 7001 0000    PUSH    #0000, GR1
+ 0002 7002 0000    PUSH    #0000, GR2
+ 0004 1210 000D    LAD     GR1, #000D
+ 0006 1220 0012    LAD     GR2, #0012
+ 0008 F000 0001    SVC     #0001
+ 000A 7120         POP     GR2
+ 000B 7110         POP     GR1
+ 000C 8100         RET
+ -g
+ Hello
+ -q
+ #+END_EXAMPLE
+
+*** 参考
+
+   - CASL - Wikipedia http://ja.wikipedia.org/wiki/CASL
+   - CASL1 仕様 http://www.image.med.osaka-u.ac.jp/member/nakamoto/enshuD2007/casl.pdf
+   - CASL2 仕様 http://www.jitec.ipa.go.jp/1_13download/shiken_yougo_ver2_2.pdf
