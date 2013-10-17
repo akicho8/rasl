@@ -420,7 +420,7 @@ module Rasl
     alias to_s info
 
     def label_fetch(str)
-      ((@labels[@namespace] || {})[str]) || ((@labels["__global__"] || {})[str])
+      ((@labels[@current_namespace] || {})[str]) || ((@labels["__global__"] || {})[str])
     end
 
     private
@@ -451,7 +451,7 @@ module Rasl
       @inline_index = 0
 
       @start_index = 0
-      @namespace = "__global__"
+      @current_namespace = "__global__"
       @namespaces = []
 
       @current_buffer.lines.each do |line|
@@ -485,8 +485,8 @@ module Rasl
           if label_fetch(label) && @pass_count == 0
             raise LabelDuplicate, "ラベル重複 : #{label.inspect}"
           end
-          @labels[@namespace] ||= {}
-          @labels[@namespace].update(label => @code_size)
+          @labels[@current_namespace] ||= {}
+          @labels[@current_namespace].update(label => @code_size)
           @current_label = label
         end
       end
@@ -525,7 +525,7 @@ module Rasl
 
     def valid_addr(index)
       unless @memory[index]
-        raise MemoryViolate, "メモリの外にアクセスしました : #{index} メモリサイズ:#{@memory.size}"
+        raise MemoryViolate, "メモリ外アクセス : #{index} メモリサイズ:#{@memory.size}"
       end
     end
 
@@ -770,11 +770,11 @@ module Rasl
     def encode_start
       @start_index += 1
 
-      @namespaces.push(@namespace)
+      @namespaces.push(@current_namespace)
       if @current_label
-        @namespace = @current_label
+        @current_namespace = @current_label
       else
-        @namespace = "__proc_#{@start_index}"
+        @current_namespace = "__proc_#{@start_index}__"
       end
 
       v = 0
@@ -788,7 +788,7 @@ module Rasl
 
     def encode_end
       inline_dc_store
-      @namespace = @namespaces.pop
+      @current_namespace = @namespaces.pop
       @encoded = true
     end
 
@@ -1052,9 +1052,7 @@ module Rasl
     end
 
     def value_pop
-      mem_get(@gr[:sp].value).tap do
-        @gr[:sp].value += 1
-      end
+      mem_get(@gr[:sp].value).tap { @gr[:sp].value += 1 }
     end
 
     def decode_pop
@@ -1405,7 +1403,7 @@ module Rasl
     def command_step
       code_fetch(@gr[:pc].value)
       unless @cur_code[:operand]
-        raise RunError, "不明な命令のため実行できません : #{@cur_code[:raw]}"
+        raise RunError, "不明な命令のため実行できない : #{@cur_code[:raw]}"
       end
       @gr[:pc].value = @cur_code[:next_pc]
       send @cur_code[:operand].decode
@@ -1483,25 +1481,25 @@ EOT
           "CASL Assembler / Simulator #{o.ver}\n",
           "使い方: #{o.program_name} [OPTIONS] [ファイル]\n",
         ].join
-        o.on("-s", "--simulator", "シミュレーターを起動する") do |v|
+        o.on("-s", "--simulator", "シミュレーター起動") do |v|
           @options[:simulator] = v
         end
-        o.on("-p", "--print-map", "MAP情報を標準出力する") do |v|
+        o.on("-p", "--print-map", "MAP情報の標準出力") do |v|
           @options[:print_map] = v
         end
-        o.on("-g", "--go", "実行する") do |v|
-          @options[:go] = v
-        end
-        o.on("-m", "--output-map", "MAPファイルを出力する。-g オプションがあるときは実行後に出力する") do |v|
+        o.on("-m", "--output-map", "MAP情報のファイル出力。-g オプションがあるときは実行後に出力する") do |v|
           @options[:output_map] = v
         end
-        o.on("-e CODE", "--eval=CODE", "アセンブルするコード。指定があると標準入力からは読み込まない") do |v|
+        o.on("-g", "--go", "実行") do |v|
+          @options[:go] = v
+        end
+        o.on("-e CODE", "--eval=CODE", "指定コードの評価。指定があると標準入力からは読み込まない") do |v|
           @options[:eval] = v
         end
         o.on("--memory-size=SIZE", Integer, "メモリサイズの指定(デフォルト:#{(Rasl.config.memory_size)})") do |v|
           Rasl.config.memory_size = v
         end
-        o.on("--spec=NUMBER", Integer, "CASL1なら1を指定しとく。するとGR4がSPになる") do |v|
+        o.on("--spec=NUMBER", Integer, "1:レジスタ数5個でGR4==SP 2:レジスタ数8 GR4!=SP") do |v|
           Rasl.config.spec = v
         end
         o.on("--ds-init-value=VAL","DSで領域確保したときの初期値(デフォルト:#{Rasl.config.ds_init_value})") do |v|
