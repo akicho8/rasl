@@ -5,22 +5,23 @@ app = Rasl::Processor.new
 app.assemble <<-SOURCE
 MAIN    START
         LD      GR0,=1
-        ADDA    GR0,=2
-        ADDA    GR0,=3
+        LD      GR1,=2
+        ADDA    GR0,GR1
         ST      GR0,RESULT
         RET
 RESULT  DS      1
         END
 SOURCE
 app.go
-app.memory[app.labels["MAIN"]["RESULT"]]     # => 6
+app.gr[:gr0].value                       # => 3
+app.labels["MAIN"]                       # => {"RESULT"=>8}
+app.memory[app.labels["MAIN"]["RESULT"]] # => 3
 puts app.disassemble
-# >> 0000 1000 000A    LD      GR0, #000A
-# >> 0002 2000 000B    ADDA    GR0, #000B
-# >> 0004 2000 000C    ADDA    GR0, #000C
-# >> 0006 1100 0009    ST      GR0, #0009
-# >> 0008 8100         RET
-# >> 0009 0006         DC      6
-# >> 000A 0001         DC      1
-# >> 000B 0002         DC      2
-# >> 000C 0003         DC      3
+# >> 0000 1000 0009    LD      GR0, #0009
+# >> 0002 1010 000A    LD      GR1, #000A
+# >> 0004 2401         ADDA    GR0, GR1
+# >> 0005 1100 0008    ST      GR0, #0008
+# >> 0007 8100         RET
+# >> 0008 0003         DC      3
+# >> 0009 0001         DC      1
+# >> 000A 0002         DC      2
