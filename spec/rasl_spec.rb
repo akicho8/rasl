@@ -317,18 +317,18 @@ describe Rasl do
       #   @p.assemble(["start", "ld gr0,=77", " dc 0", "end"].join("\n"))
       #   @p.memory[@p.code_size - 1].should == 77
       # end
-      # 
+      #
       # it "ds" do
       #   @p.assemble [" nop", "a ds a"].join("\n") # 個数がラベル
       #   @p.code_size.should == 2
-      # 
+      #
       #   @p.assemble " ds 7"
       #   @p.code_size.should == 7
-      # 
+      #
       #   @p.assemble " ds 0"
       #   @p.code_size.should == 0
       # end
-      # 
+      #
       # describe "dc" do
       #   it do
       #     dc_check %{''}, ""
@@ -340,12 +340,12 @@ describe Rasl do
       #     dc_check %{'a''b''c',0,'d''e''f'}, "a'b'c\x00d'e'f"
       #     dc_check %{"a""b""c",0,'d''e''f'}, %{a"b"c\x00d'e'f}
       #   end
-      # 
+      #
       #   it "ラベルはアドレスに展開" do
       #     asm ["nop", "a nop"], :dc => {:b => :a}
       #     var_check :b, @p.labels[:a]
       #   end
-      # 
+      #
       #   def dc_check(code, result)
       #     @p.assemble " dc #{code}"
       #     @p.memory[0...@p.code_size].pack("C*").should == result
@@ -354,12 +354,31 @@ describe Rasl do
     end
 
     describe "マクロ" do
-      it "in" do
-        @p.stub(:gets).and_return("ab")
-        asm "in buf,len", :ds => {:buf => 4}, :dc => {:len => 0}
-        @p.memory[@p.labels["__global__"]["buf"] + 0].should == "a".ord
-        @p.memory[@p.labels["__global__"]["buf"] + 1].should == "b".ord
-        var_check :len, 2
+      describe "in" do
+        shared_examples_for "test" do
+          it do
+            asm "in buf,len", :ds => {:buf => 4}, :dc => {:len => 0}
+            @p.memory[@p.labels["__global__"]["buf"] + 0].should == "a".ord
+            @p.memory[@p.labels["__global__"]["buf"] + 1].should == "b".ord
+            var_check :len, 2
+          end
+        end
+
+        describe "@dataから" do
+          before { @p.data = ["ab"] }
+          it_behaves_like "test"
+        end
+
+        describe "標準入力" do
+          before do
+            @save_stdin = $stdin
+            $stdin = double("stdin", :gets => "ab")
+          end
+          after do
+            $stdin = @save_stdin
+          end
+          it_behaves_like "test"
+        end
       end
 
       it "out" do

@@ -77,7 +77,7 @@
    : $ rasl --help
    : CASL Assembler / Simulator rasl 0.0.1
    : 使い方: rasl [OPTIONS] [ファイル]
-   :     -s, --simulator                  シミュレーター起動
+   :     -s, --simulator                  シミュレータ起動
    :     -p, --print-map                  MAP情報の標準出力
    :     -m, --output-map                 MAP情報のファイル出力。-g オプションがあるときは実行後に出力する
    :     -g, --go                         実行
@@ -87,7 +87,7 @@
    :         --ds-init-value=VAL          DSで領域確保したときの初期値(デフォルト:0)
    :         --memory-defval=VAL          メモリの初期値(デフォルト:0)
    :         --[no-]bol-order             命令の前に空白を書かなくてよいことにする(デフォルト:true)
-   :     -i, --register                   実行後にレジスタ一覧を表示する
+   :     -i, --register                   実行後レジスタ一覧表示
 
 *** MAP情報の標準出力 (-p)
 
@@ -179,6 +179,34 @@
    : 0010: 006C 006F 0005 0000 0000 0000 0000 0000 lo......
    : 0018: 0000 0000 0000 0000 0000 0000 0000 0000 ........
    : -q
+
+** IN 命令時の __END__
+
+デフォルトでは標準入力待ちになるが __END__ の指定があればその次の行からを入力データとして扱う
+
+  : $ cat in_out.csl
+  :         START
+  :         IN      STR,LEN  ; STR="a" LEN=1
+  :         OUT     STR,LEN  ; => "a"
+  :         IN      STR,LEN  ; STR=""  LEN=0
+  :         OUT     STR,LEN  ; => ""
+  :         IN      STR,LEN  ; STR="b" LEN=1
+  :         OUT     STR,LEN  ; => "b"
+  :         IN      STR,LEN  ; STR=""  LEN=-1
+  :         OUT     STR,LEN  ; => なし
+  :         RET
+  : STR     DS      4
+  : LEN     DS      1
+  :         END
+  : __END__
+  : a
+  : 
+  : b
+
+  : $ rasl -g in_out.csl
+  : a
+  : 
+  : b
 
 ** とりあえずのEmacs設定
 

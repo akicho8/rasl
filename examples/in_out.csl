@@ -1,0 +1,17 @@
+        START
+        IN      STR,LEN
+        OUT     STR,LEN
+        IN      STR,LEN
+        OUT     STR,LEN
+        IN      STR,LEN
+        OUT     STR,LEN
+        IN      STR,LEN
+        OUT     STR,LEN
+        RET
+STR     DS      4
+LEN     DS      1
+        END
+__END__
+a
+
+c

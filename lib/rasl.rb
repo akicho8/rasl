@@ -30,6 +30,8 @@ module Rasl
   config.dump_cols        = 8
   config.dump_rows        = 4
 
+  END_OF_FILE = -1
+
   class RaslError < StandardError
     def message
       [super, current_file_line].compact.join("\n")
@@ -291,7 +293,7 @@ module Rasl
 
   module Env
     attr_reader :gr, :memory, :global_labels, :labels
-    attr_accessor :exit_key, :code_size, :boot_pc
+    attr_accessor :exit_key, :code_size, :boot_pc, :data
 
     def initialize
       create_registers
@@ -325,7 +327,7 @@ module Rasl
     end
 
     def assemble_without_init_env(buffer)
-      @current_buffer = buffer
+      @current_buffer = buffer.dup
       @pass_count = 0
       assemble_once
       @pass_count += 1
@@ -442,7 +444,7 @@ module Rasl
     end
 
     def assemble_once
-      Rasl::Parser.line_count = 0
+      Rasl::Parser.line_count = nil
 
       @code_size = 0
       @boot_pc = nil
@@ -454,12 +456,18 @@ module Rasl
       @current_namespace = "__global__"
       @namespaces = []
 
-      @current_buffer.lines.each do |line|
+      @current_buffer.lines.each.with_index do |line, i|
         Rasl::Parser.raw_line = line
-        Rasl::Parser.line_count += 1
+        Rasl::Parser.line_count = i.next
         line = line.sub(syntax[:comment], "").rstrip
         if line.blank?
           next
+        end
+        if line == "__END__"
+          unless @data
+            @data ||= @current_buffer.rstrip.lines.drop(i.next).collect(&:rstrip)
+          end
+          break
         end
         @scanner = StringScanner.new(line)
         Rasl::Parser.scanner = @scanner
@@ -1095,25 +1103,37 @@ module Rasl
 
     def decode_svc_input
       base = @gr[:gr1].value
-      len  = @gr[:gr2].value
-      str = gets.to_s.rstrip
-      str.chars.each.with_index{|ch, i|
-        mem_set(base + i, ch.ord)
-      }
-      mem_set(len, str.length)
+      sizep = @gr[:gr2].value
+      if @data
+        str = @data[@data_pos].tap { @data_pos += 1 }
+      else
+        str = $stdin.gets
+      end
+      if str
+        str = str.chomp
+        str.chars.each.with_index{|ch, i|
+          mem_set(base + i, ch.ord)
+        }
+        mem_set(sizep, str.length)
+      else
+        mem_set(sizep, END_OF_FILE)
+      end
     end
 
     def decode_svc_output
       base = @gr[:gr1].value
-      len  = @gr[:gr2].value
-      str = mem_get(len).times.collect{|i|
+      size = Value.signed(mem_get(@gr[:gr2].value))
+      if size == END_OF_FILE
+        return
+      end
+      str = size.times.collect do |i|
         v = mem_get(base + i)
         begin
           v.chr
         rescue RangeError
           "(##{Value.hex_format(v)})"
         end
-      }.join
+      end.join
       puts str
     end
 
@@ -1122,11 +1142,11 @@ module Rasl
     end
 
     def decode_svc_copy
-      dst = @gr[:gr1].value
-      src = @gr[:gr2].value
-      len = @gr[:gr3].value
-      len.times do |i|
-        mem_set(dst + i, mem_get(src + i))
+      dist = @gr[:gr1].value
+      src  = @gr[:gr2].value
+      size = @gr[:gr3].value
+      size.times do |i|
+        mem_set(dist + i, mem_get(src + i))
       end
     end
 
@@ -1303,7 +1323,7 @@ module Rasl
           getline(Readline.readline("-"))
         else
           print "-"
-          getline(STDIN.gets)
+          getline($stdin.gets)
         end
         if @command
           if @command == "q"
@@ -1373,6 +1393,7 @@ module Rasl
       @dump_point = @boot_pc
 
       @exit_key = false
+      @data_pos = 0
     end
 
     def command_go
@@ -1384,8 +1405,10 @@ module Rasl
 
     def command_trace
       set_pc
-      command_step
-      current_state
+      unless @exit_key
+        command_step
+        current_state
+      end
     end
 
     def command_register
@@ -1481,7 +1504,7 @@ EOT
           "CASL Assembler / Simulator #{o.ver}\n",
           "使い方: #{o.program_name} [OPTIONS] [ファイル]\n",
         ].join
-        o.on("-s", "--simulator", "シミュレーター起動") do |v|
+        o.on("-s", "--simulator", "シミュレータ起動") do |v|
           @options[:simulator] = v
         end
         o.on("-p", "--print-map", "MAP情報の標準出力") do |v|
@@ -1495,6 +1518,12 @@ EOT
         end
         o.on("-e CODE", "--eval=CODE", "指定コードの評価。指定があると標準入力からは読み込まない") do |v|
           @options[:eval] = v
+        end
+        o.on("-r", "--register", "実行後レジスタ一覧表示") do |v|
+          @options[:register] = v
+        end
+        o.on("--in=STRING", "INマクロに対する入力文字列(__END__ 行のデータよりも優先)") do |v|
+          @options[:data] = v
         end
         o.on("--memory-size=SIZE", Integer, "メモリサイズの指定(デフォルト:#{(Rasl.config.memory_size)})") do |v|
           Rasl.config.memory_size = v
@@ -1510,9 +1539,6 @@ EOT
         end
         o.on("--[no-]bol-order", "命令の前に空白を書かなくてよいことにする(デフォルト:#{Rasl.config.bol_order})") do |v|
           Rasl.config.bol_order = v
-        end
-        o.on("-i", "--register", "実行後にレジスタ一覧を表示する") do |v|
-          @options[:register] = v
         end
       end
     end
@@ -1530,6 +1556,11 @@ EOT
       end
 
       @processor = Processor.new
+
+      if @options[:data]
+        @processor.data = @options[:data].lines.collect(&:chomp)
+      end
+
       if @options[:eval]
         @processor.assemble(@options[:eval])
       else
@@ -1572,9 +1603,20 @@ end
 if $0 == __FILE__
   Rasl.config.memory_size = 256
   object = Rasl::Processor.new
-  object.assemble("RET")
+  object.assemble("
+  IN  A,B
+  IN  A,B
+  IN  A,B
+  RET
+A DS 5
+B DS 1
+__END__
+a
+b
+")
   puts object.disassemble
   object.go
   p object.labels
+  puts object.disassemble
   object.command_dump
 end
