@@ -292,7 +292,7 @@ module Rasl
   end
 
   module Env
-    attr_reader :gr, :memory, :global_labels, :labels
+    attr_reader :gr, :memory, :labels
     attr_accessor :exit_key, :code_size, :boot_pc, :data
 
     def initialize
@@ -315,7 +315,7 @@ module Rasl
     end
 
     def init_env
-      @labels = Hash.new
+      @labels = {}
       @memory.fill(Rasl.config.memory_defval)
       @gr.values.each(&:reset)
       @inline_addr_list = []
@@ -422,7 +422,7 @@ module Rasl
     alias to_s info
 
     def label_fetch(str)
-      ((@labels[@current_namespace] || {})[str]) || ((@labels["__global__"] || {})[str])
+      ((@labels[@current_namespace] || {})[str]) || ((@labels[:__global__] || {})[str])
     end
 
     private
@@ -453,7 +453,7 @@ module Rasl
       @inline_index = 0
 
       @start_index = 0
-      @current_namespace = "__global__"
+      @current_namespace = :__global__
       @namespaces = []
 
       @current_buffer.lines.each.with_index do |line, i|

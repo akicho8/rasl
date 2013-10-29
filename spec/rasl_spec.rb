@@ -358,8 +358,8 @@ describe Rasl do
         shared_examples_for "test" do
           it do
             asm "in buf,len", :ds => {:buf => 4}, :dc => {:len => 0}
-            @p.memory[@p.labels["__global__"]["buf"] + 0].should == "a".ord
-            @p.memory[@p.labels["__global__"]["buf"] + 1].should == "b".ord
+            @p.memory[@p.labels[:__global__]["buf"] + 0].should == "a".ord
+            @p.memory[@p.labels[:__global__]["buf"] + 1].should == "b".ord
             var_check :len, 2
           end
         end
@@ -400,12 +400,12 @@ describe Rasl do
 
   describe Parser do
     it "ラベル" do
-      @p.assemble("foo").labels.should  == {"__global__" => {"foo" => 0}}
-      @p.assemble("foo:").labels.should == {"__global__" => {"foo" => 0}}
-      @p.assemble("Foo:").labels.should == {"__global__" => {"Foo" => 0}}
-      @p.assemble("lad:").labels.should == {"__global__" => {"lad" => 0}}
-      @p.assemble("@xx").labels.should  == {"__global__" => {"@xx" => 0}}
-      @p.assemble("$xx").labels.should  == {"__global__" => {"$xx" => 0}}
+      @p.assemble("foo").labels.should  == {:__global__ => {"foo" => 0}}
+      @p.assemble("foo:").labels.should == {:__global__ => {"foo" => 0}}
+      @p.assemble("Foo:").labels.should == {:__global__ => {"Foo" => 0}}
+      @p.assemble("lad:").labels.should == {:__global__ => {"lad" => 0}}
+      @p.assemble("@xx").labels.should  == {:__global__ => {"@xx" => 0}}
+      @p.assemble("$xx").labels.should  == {:__global__ => {"$xx" => 0}}
     end
 
     it "コメント" do
@@ -660,7 +660,7 @@ MAP
   end
 
   def var(name)
-    Value.new(@p.memory[@p.labels["__global__"].fetch(name.to_s)]).s_value
+    Value.new(@p.memory[@p.labels[:__global__].fetch(name.to_s)]).s_value
   end
 
   def reg_is(name, value)
