@@ -425,6 +425,15 @@ module Rasl
       ((@labels[@current_namespace] || {})[str]) || ((@labels[:__global__] || {})[str])
     end
 
+    def label_set(namespace, label)
+      @labels[namespace] ||= {}
+      if @labels[namespace][label] && @pass_count == 0
+        raise LabelDuplicate, "ラベル重複 : #{label.inspect} (namespace: #{namespace})"
+      end
+      @labels[namespace][label] = @code_size
+      @current_label = label
+    end
+
     private
 
     def create_registers
@@ -490,12 +499,11 @@ module Rasl
           @scanner.unscan
         else
           label = label.sub(":", "")
-          if label_fetch(label) && @pass_count == 0
-            raise LabelDuplicate, "ラベル重複 : #{label.inspect}"
+          if label.start_with?("$")
+            label_set(:__global__, label)
+          else
+            label_set(@current_namespace, label)
           end
-          @labels[@current_namespace] ||= {}
-          @labels[@current_namespace].update(label => @code_size)
-          @current_label = label
         end
       end
     end
@@ -1604,15 +1612,24 @@ if $0 == __FILE__
   Rasl.config.memory_size = 256
   object = Rasl::Processor.new
   object.assemble("
-  IN  A,B
-  IN  A,B
-  IN  A,B
+A START
   RET
-A DS 5
-B DS 1
-__END__
-a
-b
+A DS 1
+  END
+A START
+  RET
+A DS 1
+  END
+
+;  IN  A,B
+;  IN  A,B
+;  IN  A,B
+;  RET
+;A DS 5
+;B DS 1
+;__END__
+;a
+;b
 ")
   puts object.disassemble
   object.go

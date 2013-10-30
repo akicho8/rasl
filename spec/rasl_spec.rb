@@ -399,13 +399,33 @@ describe Rasl do
   end
 
   describe Parser do
-    it "ラベル" do
+    it "ラベル表記" do
       @p.assemble("foo").labels.should  == {:__global__ => {"foo" => 0}}
       @p.assemble("foo:").labels.should == {:__global__ => {"foo" => 0}}
       @p.assemble("Foo:").labels.should == {:__global__ => {"Foo" => 0}}
       @p.assemble("lad:").labels.should == {:__global__ => {"lad" => 0}}
       @p.assemble("@xx").labels.should  == {:__global__ => {"@xx" => 0}}
       @p.assemble("$xx").labels.should  == {:__global__ => {"$xx" => 0}}
+    end
+
+    it "ローカルラベルとグローバルラベル" do
+      asm [
+        "a  START",             # global
+        "a  NOP",               # local
+        "   RET",
+        "   END",
+        "",
+        "b  START",             # global
+        "a  NOP",               # local
+        "$x NOP",               # global
+        "   RET",
+        "   END",
+      ]
+      @p.labels.should == {
+        :__global__ => {"a" => 0, "b" => 2, "$x" => 3},
+        "a"         => {"a" => 0},
+        "b"         => {"a" => 2},
+      }
     end
 
     it "コメント" do
