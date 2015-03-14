@@ -41,10 +41,10 @@ module Rasl
 
     def current_file_line
       if Rasl::Parser.line_count
-        if File === ARGF.file
-          path = ARGF.path
-        else
+        if ARGF.filename == "-"
           path = "<STDIN>"
+        else
+          path = ARGF.path
         end
 
         path_line = "#{path}:#{Rasl::Parser.line_count}: "
