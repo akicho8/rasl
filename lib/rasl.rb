@@ -249,9 +249,9 @@ module Rasl
     end
 
     def to_s_flags
-      flags_hash.keys.collect do |key|
+      flags_hash.keys.collect {|key|
         send("#{key}?") ? key.to_s[0].upcase : "_"
-      end.join
+      }.join
     end
 
     def to_s_sign
@@ -347,7 +347,7 @@ module Rasl
     end
 
     def create_map_file(map_file)
-      Pathname(map_file).open("w"){|f|f << disassemble}
+      Pathname(map_file).write(disassemble)
     end
 
     def gr_count
@@ -514,13 +514,12 @@ module Rasl
         skip_blank
         pointer = @scanner.pointer
         @operands.each do |operand|
-          if operand == str
-            @current_op = operand
-            @scanner.pointer = pointer
-            send operand.encode
-            if @encoded
-              break
-            end
+          next unless operand == str
+          @current_op = operand
+          @scanner.pointer = pointer
+          send operand.encode
+          if @encoded
+            break
           end
         end
         unless @encoded
@@ -699,7 +698,7 @@ module Rasl
 
         { key: :in,                  encode: :encode_in                                                                             },
         { key: :out,                 encode: :encode_out                                                                            },
-        { key: :exit,                encode: :encode_exit                                                                           },
+        { key: :exit,                encode: :encode__exit                                                                          },
         { key: :rpush,               encode: :encode_rpush                                                                          },
         { key: :rpop,                encode: :encode_rpop                                                                           },
 
@@ -779,7 +778,7 @@ module Rasl
       store_asm :pop, :gr1, nil
     end
 
-    def encode_exit
+    def encode__exit
       store_prim_op(@operands_hash[:svc].op_code, nil, nil, svc_hash[:exit][:code])
     end
 
@@ -1134,14 +1133,14 @@ module Rasl
       if size == END_OF_FILE
         return
       end
-      str = size.times.collect do |i|
+      str = size.times.collect {|i|
         v = mem_get(base + i)
         begin
           v.chr
         rescue RangeError
           "(##{Value.hex_format(v)})"
         end
-      end.join
+      }.join
       puts str
     end
 
@@ -1333,13 +1332,12 @@ module Rasl
           print "-"
           getline($stdin.gets)
         end
-        if @command
-          if @command == "q"
-            break
-          end
-          if command = command_table[@command]
-            send command
-          end
+        next unless @command
+        if @command == "q"
+          break
+        end
+        if command = command_table[@command]
+          send command
         end
       end
     end
@@ -1609,9 +1607,10 @@ EOT
 end
 
 if $0 == __FILE__
-  Rasl.config.memory_size = 256
-  object = Rasl::Processor.new
-  object.assemble("
+  if false
+    Rasl.config.memory_size = 256
+    object = Rasl::Processor.new
+    object.assemble("
 A START
   RET
 A DS 1
@@ -1631,9 +1630,31 @@ A DS 1
 ;a
 ;b
 ")
-  puts object.disassemble
-  object.go
-  p object.labels
-  puts object.disassemble
-  object.command_dump
+    puts object.disassemble
+    object.go
+    p object.labels
+    puts object.disassemble
+    object.command_dump
+  end
+
+  if true
+    object = Rasl::Processor.new
+    object.assemble("
+MAIN      START
+          CALL      FGET
+          RET
+          END
+
+FGET      START
+EXIT      LD        GR1,GR7
+          RET
+          JUMP      EXIT
+          END
+")
+    puts object.disassemble
+    object.go
+    p object.labels
+    puts object.disassemble
+    object.command_dump
+  end
 end

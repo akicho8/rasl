@@ -382,9 +382,12 @@ describe Rasl do
       end
 
       it "out" do
-        capture(:stdout) {
+        # capture(:stdout) {
+        #   asm ["out str,len", "out str,len"], :dc => {:str => "'abcd'", :len => 2}
+        # }.should == "ab\nab\n"
+        expect {
           asm ["out str,len", "out str,len"], :dc => {:str => "'abcd'", :len => 2}
-        }.should == "ab\nab\n"
+        }.to output("ab\nab\n").to_stdout
       end
 
       it "exit" do
@@ -488,7 +491,7 @@ EOT
     describe "r" do
       it "r" do
         @p.command_init
-        capture(:stdout) { @p.post_command("r") }.should == <<-EOT
+        expect { @p.post_command("r") }.to output(<<-EOT).to_stdout
 GR0=0000 GR1=0000 GR2=0000 GR3=0000 GR4=0000 GR5=0000 GR6=0000 GR7=0000 PC=0000 SP=FFFF FR=___(+)
 0000 0000         DC      0
 EOT
@@ -502,7 +505,7 @@ EOT
 
       it "asm => r" do
         asm "lea GR0,1"
-        capture(:stdout) { @p.post_command("r") }.should == <<-EOT
+        expect { @p.post_command("r") }.to output(<<-EOT).to_stdout
 GR0=0001 GR1=0000 GR2=0000 GR3=0000 GR4=0000 GR5=0000 GR6=0000 GR7=0000 PC=0004 SP=FFFF FR=___(+) [exit]
 0004 0000         DC      0
 EOT
