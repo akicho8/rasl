@@ -565,7 +565,7 @@ module Rasl
             pos,
             (Value.hex_width + 1) * options[:columns],
             values.collect{|v|Value.hex_format(v)} * " ",
-            chars.join.gsub(/[[:^print:]]/, "."),
+            chars.join.gsub(/[^[:print:]]/, "."),
           ]
           pos += values.length
         end
