@@ -26,7 +26,7 @@ module Rasl
   config.disassemble_rows = 8
   config.ds_init_value    = 0
   config.memory_defval    = 0
-  config.bol_order        = true # 最初から命令を書けるか？
+  config.bol_order        = false # 最初から命令を書けるか？
   config.dump_cols        = 8
   config.dump_rows        = 4
 
