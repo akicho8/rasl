@@ -404,8 +404,8 @@ module Rasl
       ["", "DC", arg]
     end
 
-    def code_dump
-      mem_dump(@memory, :range => 0...@code_size)
+    def code_dump(**options)
+      mem_dump(@memory, {:range => 0...@code_size}.merge(options))
     end
 
     def regs_info
