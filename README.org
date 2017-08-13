@@ -186,33 +186,37 @@ puts app.disassemble
 
 デフォルトでは標準入力待ちになるが __END__ の指定があればその次の行からを入力データとして扱う
 
-  : $ cat in_out.csl
-  :         START
-  :         IN      STR,LEN  ; STR="a" LEN=1
-  :         OUT     STR,LEN  ; => "a"
-  :         IN      STR,LEN  ; STR=""  LEN=0
-  :         OUT     STR,LEN  ; => ""
-  :         IN      STR,LEN  ; STR="b" LEN=1
-  :         OUT     STR,LEN  ; => "b"
-  :         IN      STR,LEN  ; STR=""  LEN=-1
-  :         OUT     STR,LEN  ; => なし
-  :         RET
-  : STR     DS      4
-  : LEN     DS      1
-  :         END
-  : __END__
-  : a
-  :
-  : b
+#+BEGIN_SRC shell
+$ cat in_out.csl
+        START
+        IN      STR,LEN  ; STR="a" LEN=1
+        OUT     STR,LEN  ; => "a"
+        IN      STR,LEN  ; STR=""  LEN=0
+        OUT     STR,LEN  ; => ""
+        IN      STR,LEN  ; STR="b" LEN=1
+        OUT     STR,LEN  ; => "b"
+        IN      STR,LEN  ; STR=""  LEN=-1
+        OUT     STR,LEN  ; => なし
+        RET
+STR     DS      4
+LEN     DS      1
+        END
+__END__
+a
 
-  : $ rasl -g in_out.csl
-  : a
-  :
-  : b
+b
 
-** とりあえずのEmacs設定
+$ rasl -g in_out.csl
+a
 
-   : (add-to-list 'auto-mode-alist '("\\.\\([rc]asl?\\|csl\\)$" . asm-mode))
+b
+#+END_SRC
+
+** オススメの Emacs 設定
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'auto-mode-alist '("\\.\\([rc]asl?\\|csl\\)$" . asm-mode))
+#+END_SRC
 
 ** 参考
 
