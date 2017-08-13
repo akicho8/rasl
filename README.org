@@ -1,10 +1,6 @@
-#+OPTIONS: toc:nil num:nil author:nil creator:nil \n:nil |:t
-#+OPTIONS: @:t ::t ^:t -:t f:t *:t <:t
-
 * CASL Assembler / Simulator
 
   - [[http://tk2-221-20341.vs.sakura.ne.jp/casl-simulator][DEMO]] http://tk2-221-20341.vs.sakura.ne.jp/casl-simulator
-
 
   - [[https://travis-ci.org/akicho8/rasl][Travis]] [[https://travis-ci.org/akicho8/rasl.png]]
   - [[https://gemnasium.com/akicho8/rasl/][Gemnasium]] [[https://gemnasium.com/akicho8/rasl.png]]
@@ -206,12 +202,12 @@ puts app.disassemble
   :         END
   : __END__
   : a
-  : 
+  :
   : b
 
   : $ rasl -g in_out.csl
   : a
-  : 
+  :
   : b
 
 ** とりあえずのEmacs設定

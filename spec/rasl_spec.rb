@@ -36,7 +36,7 @@ describe Rasl do
     end
   end
 
-  describe Env do
+  describe Environment do
     it "new" do
       @p.code_size.should == 0
       @p.boot_pc.should == 0

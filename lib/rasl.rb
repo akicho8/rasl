@@ -1,21 +1,18 @@
-# -*- coding: utf-8 -*-
-#
 # CASL Assembler / Simulator
-#
 
-require "optparse"
-require "pathname"
-require "readline"
-require "kconv"
+require 'optparse'
+require 'pathname'
+require 'readline'
+require 'kconv'
 
-require "active_support/core_ext/string"
-require "active_support/configurable"
-require "active_support/core_ext/module/attribute_accessors"
-require "active_support/hash_with_indifferent_access"
+require 'active_support/core_ext/string'
+require 'active_support/configurable'
+require 'active_support/core_ext/module/attribute_accessors'
+require 'active_support/hash_with_indifferent_access'
 
-require "active_model"
+require 'active_model'
 
-require_relative "rasl/version"
+require_relative 'rasl/version'
 
 module Rasl
   include ActiveSupport::Configurable
@@ -41,8 +38,8 @@ module Rasl
 
     def current_file_line
       if Rasl::Parser.line_count
-        if ARGF.filename == "-"
-          path = "<STDIN>"
+        if ARGF.filename == '-'
+          path = '<STDIN>'
         else
           path = ARGF.path
         end
@@ -55,14 +52,14 @@ module Rasl
         padding = ' ' * (path_line.size + from)
 
         out = []
-        out << "-" * 75
+        out << '-' * 75
         out << "#{path_line}#{Rasl::Parser.raw_line.rstrip}"
         if to != from
           out << padding + '^' * (to - from)
         else
           out << padding + '^'
         end
-        out << "-" * 75
+        out << '-' * 75
         out << Rasl::Parser.scanner.inspect
         out * "\n"
       end
@@ -106,7 +103,7 @@ module Rasl
   class Value
     class << self
       def cast_value(value, signed)
-        format = {8 => "c", 16 => "s", 32 => "l", 64 => "q"}.fetch(Value.bit)
+        format = {8 => 'c', 16 => 's', 32 => 'l', 64 => 'q'}.fetch(Value.bit)
         [value].pack(format).unpack(signed ? format : format.upcase).first
       end
 
@@ -155,7 +152,7 @@ module Rasl
       end
 
       def hex_format(value)
-        "%0*X" % [hex_width, unsigned(value)]
+        '%0*X' % [hex_width, unsigned(value)]
       end
 
       def hex_width
@@ -245,23 +242,23 @@ module Rasl
     end
 
     def to_s
-      "%s=%s(%s)" % [name, to_s_flags, to_s_sign]
+      '%s=%s(%s)' % [name, to_s_flags, to_s_sign]
     end
 
     def to_s_flags
       flags_hash.keys.collect {|key|
-        send("#{key}?") ? key.to_s[0].upcase : "_"
+        send("#{key}?") ? key.to_s[0].upcase : '_'
       }.join
     end
 
     def to_s_sign
       case
       when sf?
-        "-"
+        '-'
       when zf?
-        "0"
+        '0'
       else
-        "+"
+        '+'
       end
     end
 
@@ -291,7 +288,7 @@ module Rasl
     end
   end
 
-  module Env
+  module Environment
     attr_reader :gr, :memory, :labels
     attr_accessor :exit_key, :code_size, :boot_pc, :data
 
@@ -336,7 +333,7 @@ module Rasl
     end
 
     def disassemble
-      out = ""
+      out = ''
       pc = 0
       until pc >= @code_size
         code_fetch(pc)
@@ -382,26 +379,26 @@ module Rasl
       else
         params = disasm_dc
       end
-      ("%04X %s %-*s    %-7s %s" % [@cur_code[:addr], Value.hex_format(@cur_code[:raw]), Value.hex_width, *params]).strip
+      ('%04X %s %-*s    %-7s %s' % [@cur_code[:addr], Value.hex_format(@cur_code[:raw]), Value.hex_width, *params]).strip
     end
 
     def disasm_op
-      arg = ""
+      arg = ''
       if @cur_code[:operand].printer
         arg = send(@cur_code[:operand].printer)
       end
-      [(@cur_code[:imm] ? Value.hex_format(@cur_code[:imm]) : ""), @cur_code[:operand].name, arg]
+      [(@cur_code[:imm] ? Value.hex_format(@cur_code[:imm]) : ''), @cur_code[:operand].name, arg]
     end
 
     def disasm_dc
-      arg = "%-*d" % [Value.signed_min.to_s.length, Value.signed(@cur_code[:raw])]
+      arg = '%-*d' % [Value.signed_min.to_s.length, Value.signed(@cur_code[:raw])]
       begin
         if @cur_code[:raw].chr.match(/[[:print:]]/)
           arg << " ; '#{@cur_code[:raw].chr}'"
         end
       rescue RangeError
       end
-      ["", "DC", arg]
+      ['', 'DC', arg]
     end
 
     def code_dump(**options)
@@ -413,7 +410,7 @@ module Rasl
       out += gr_count.times.collect{|i|@gr["gr#{i}"]}.collect(&:to_s)
       out += [@gr[:pc], @gr[:sp], @gr[:fr]].collect(&:to_s)
       out << (@exit_key ? "[#{@exit_key}]" : nil)
-      out.join(" ").strip
+      out.join(' ').strip
     end
 
     def info
@@ -468,11 +465,11 @@ module Rasl
       @current_buffer.lines.each.with_index do |line, i|
         Rasl::Parser.raw_line = line
         Rasl::Parser.line_count = i.next
-        line = line.sub(syntax[:comment], "").rstrip
+        line = line.sub(syntax[:comment], '').rstrip
         if line.blank?
           next
         end
-        if line == "__END__"
+        if line == '__END__'
           unless @data
             @data ||= @current_buffer.rstrip.lines.drop(i.next).collect(&:rstrip)
           end
@@ -495,11 +492,11 @@ module Rasl
     def parse_label_part
       @current_label = nil
       if label = @scanner.scan(/#{syntax[:label]}:?/)
-        if Rasl.config.bol_order && !label.end_with?(":") && @operands.collect(&:match_names).flatten.include?(label.downcase)
+        if Rasl.config.bol_order && !label.end_with?(':') && @operands.collect(&:match_names).flatten.include?(label.downcase)
           @scanner.unscan
         else
-          label = label.sub(":", "")
-          if label.start_with?("$")
+          label = label.sub(':', '')
+          if label.start_with?('$')
             label_set(:__global__, label)
           else
             label_set(@current_namespace, label)
@@ -557,14 +554,14 @@ module Rasl
             begin
               value.chr
             rescue RangeError
-              "."
+              '.'
             end
           end
-          puts "%04X: %-*s%s" % [
+          puts '%04X: %-*s%s' % [
             pos,
             (Value.hex_width + 1) * options[:columns],
-            values.collect{|v|Value.hex_format(v)} * " ",
-            chars.join.gsub(/[^[:ascii:]]/, ".").gsub(/[^[:print:]]/, "."),
+            values.collect{|v|Value.hex_format(v)} * ' ',
+            chars.join.gsub(/[^[:ascii:]]/, '.').gsub(/[^[:print:]]/, '.'),
           ]
           pos += values.length
         end
@@ -847,7 +844,7 @@ module Rasl
         from = @scanner.pointer
         nil while @scanner.scan(/#{mark}[^#{mark}]*#{mark}/) && @scanner.check(/#{mark}/)
         str = @scanner.string[from...@scanner.pointer] # 【'a''b'】
-        if str == ""
+        if str == ''
           raise SyntaxError, "対応する #{mark} がない"
         end
         str = str.match(/\A.(?<str>.*).\z/)[:str]      # 【a''b】
@@ -1184,7 +1181,7 @@ module Rasl
     end
 
     def separator
-      ", "
+      ', '
     end
 
     def prt_blank
@@ -1239,14 +1236,14 @@ module Rasl
     end
 
     def register_regexp
-      Regexp.union(/\b#{@gr.keys.join("|")}\b/i)
+      Regexp.union(/\b#{@gr.keys.join('|')}\b/i)
     end
 
     def scan_gr
       if str = @scanner.scan(register_regexp)
         @gr[str.downcase]
       else
-        raise RegisterNotFound, "レジスタの指定がありません"
+        raise RegisterNotFound, 'レジスタの指定がありません'
       end
     end
 
@@ -1274,7 +1271,7 @@ module Rasl
         @inline_index += 1
         v
       else
-        raise SyntaxError, "即値が見つかりません"
+        raise SyntaxError, '即値が見つかりません'
       end
     end
 
@@ -1302,7 +1299,7 @@ module Rasl
     end
 
     def cast_int(str)
-      Integer(str.sub(/\A#/, "0x"))
+      Integer(str.sub(/\A#/, '0x'))
     end
 
     def label_or_imm_regexp
@@ -1327,13 +1324,13 @@ module Rasl
       command_init
       loop do
         if defined? Readline
-          getline(Readline.readline("-"))
+          getline(Readline.readline('-'))
         else
-          print "-"
+          print '-'
           getline($stdin.gets)
         end
         next unless @command
-        if @command == "q"
+        if @command == 'q'
           break
         end
         if command = command_table[@command]
@@ -1486,7 +1483,7 @@ EOT
   end
 
   class Processor
-    prepend Env
+    prepend Environment
     prepend OperandPresets1
     prepend OperandPresets2
     prepend Parser
