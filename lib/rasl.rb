@@ -235,9 +235,9 @@ module Rasl
   class FlagRegister < Register
     cattr_accessor :flags_hash do
       {
-        :of => (1 << 2),
-        :sf => (1 << 1),
-        :zf => (1 << 0),
+        of: (1 << 2),
+        sf: (1 << 1),
+        zf: (1 << 0),
       }
     end
 
@@ -402,7 +402,7 @@ module Rasl
     end
 
     def code_dump(**options)
-      mem_dump(@memory, {:range => 0...@code_size}.merge(options))
+      mem_dump(@memory, {range: 0...@code_size}.merge(options))
     end
 
     def regs_info
@@ -436,17 +436,17 @@ module Rasl
     def create_registers
       @gr = ActiveSupport::HashWithIndifferentAccess.new
       gr_count.times do |i|
-        r = Register.new("gr#{i}", :pos => @gr.count)
+        r = Register.new("gr#{i}", pos: @gr.count)
         @gr[r.key] = r
         # @gr[i.to_s] = r # for CASL1
       end
 
       if Rasl.config.spec == 2
-        @gr[:sp] = Register.new(:sp, :pos => @gr.count)
+        @gr[:sp] = Register.new(:sp, pos: @gr.count)
       end
 
-      @gr[:pc] = Register.new(:pc, :pos => @gr.count)
-      @gr[:fr] = FlagRegister.new(:fr, :pos => @gr.count)
+      @gr[:pc] = Register.new(:pc, pos: @gr.count)
+      @gr[:fr] = FlagRegister.new(:fr, pos: @gr.count)
     end
 
     def assemble_once
@@ -1094,10 +1094,10 @@ module Rasl
 
     def svc_list
       [
-        {:key => :input,  :code => 0},
-        {:key => :output, :code => 1},
-        {:key => :exit,   :code => 2},
-        {:key => :copy,   :code => 3},
+        {key: :input,  code: 0},
+        {key: :output, code: 1},
+        {key: :exit,   code: 2},
+        {key: :copy,   code: 3},
       ]
     end
 
@@ -1225,13 +1225,13 @@ module Rasl
 
     def syntax
       {
-        :comment   => /([^\\];|\A#).*/,
-        :label     => /\A[$@_a-z]\w*/i,
-        :symbol    => /\A[_a-z]\w*/i,
-        :imm       => /[+-]?(#|0x|0b)?[\da-f]+/i,
-        :sepalator => /[,\s]+/,  # 厳密にするなら /\s*,\s*/
-        :blank     => /[,\s]+/,  # 厳密にするなら /\s+/
-        :inline_dc => /\s*=\s*/i,
+        comment: /([^\\];|\A#).*/,
+        label: /\A[$@_a-z]\w*/i,
+        symbol: /\A[_a-z]\w*/i,
+        imm: /[+-]?(#|0x|0b)?[\da-f]+/i,
+        sepalator: /[,\s]+/,  # 厳密にするなら /\s*,\s*/
+        blank: /[,\s]+/,  # 厳密にするなら /\s+/
+        inline_dc: /\s*=\s*/i,
       }
     end
 
@@ -1363,7 +1363,7 @@ module Rasl
         @dump_point = @hex_args.first
       end
       size = Rasl.config.dump_cols * Rasl.config.dump_rows
-      mem_dump(@memory, :range => (@dump_point...(@dump_point + size)))
+      mem_dump(@memory, range: (@dump_point...(@dump_point + size)))
       @dump_point += size
     end
 
